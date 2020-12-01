@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import operator
 
 class PokerGame:
@@ -15,13 +16,13 @@ class PokerGame:
         # self.deck.display_deck()
         self.deck.shuffle_deck()
 
-        print("START")
+        # print("START")
         # initial draw
         for player in self.players:
             player.add_cards(self.deck.draw_card(numberOfDraws=2))
         
-        print("Initial draw.")
-        self.display_players()
+        # print("Initial draw.")
+        # self.display_players()
 
         # flop draw
         self.draw_cards(3)
@@ -34,32 +35,11 @@ class PokerGame:
         # river draw
         self.draw_cards(1)
 
-        self.display_table()
+        # self.display_table()
 
         # self.display_players()
 
         winner, classification = self.determine_winner()
-        print(f"#{winner.number} won with {classification}")
-
-    def determine_winner(self):
-
-        classifications = {}
-        classification_type = None
-        winner = None
-
-        for player in self.players:
-            players_hand = player.get_poker_hand()
-            hand_classifications = players_hand.get_classifications()
-            print(f"CLASSIFICATIONS FOR PLAYER {player.number}")
-            for c in hand_classifications:
-                c.display()
-            hand_classification = max(hand_classifications)
-
-            classifications[player] = hand_classification
-        
-        winner = max(classifications.items(), key=operator.itemgetter(1))[0]
-        classification_type = classifications[winner].get_classification()
-
         # 0: Nothing in hand; not a recognized poker hand 
         # 1: One pair; one pair of equal ranks within five cards
         # 2: Two pairs; two pairs of equal ranks within five cards
@@ -72,8 +52,30 @@ class PokerGame:
         # 9: Royal flush; {Ace, King, Queen, Jack, Ten} + flush
 
         poker_hands = ["Highest card", "One pair", "Two pair", "Three of a kind", "Straight", "Flush", "Full house", "Four of a kind", "Straight flush", "Royal flush"]
-        classification = poker_hands[classification_type]
-        return winner, classification
+        hand_name = poker_hands[classification]
+        # print(f"#{winner.number} won with {hand_name}")
+        return winner.number, self.players, self.shared_cards
+
+    def determine_winner(self):
+
+        classifications = {}
+        classification_type = None
+        winner = None
+
+        for player in self.players:
+            players_hand = player.get_poker_hand()
+            hand_classifications = players_hand.get_classifications()
+            # print(f"CLASSIFICATIONS FOR PLAYER {player.number}")
+            # for c in hand_classifications:
+            #     c.display()
+            hand_classification = max(hand_classifications)
+
+            classifications[player] = hand_classification
+        
+        winner = max(classifications.items(), key=operator.itemgetter(1))[0]
+        classification_type = classifications[winner].get_classification()
+
+        return winner, classification_type
     
     def display_players(self):
         for player in self.players:
@@ -333,9 +335,60 @@ class Card:
     def __lt__(self, other):
         return self.rank < other.rank
 
+def createDataset(numberOfRuns):
+
+    columns = ['rank1', 'suit1', 'rank2', 'suit2', 'rank3', 'suit3',
+               'rank4', 'suit4', 'rank5', 'suit5', 'rank6', 'suit6',
+               'rank7', 'suit7', 'class', 'win']
+
+    games = pd.DataFrame(columns=columns)
+
+    for i in range(numberOfRuns):
+
+
+        game = PokerGame(NumberOfPlayers=2)
+        winner, players, shared_cards = game.play()
+
+        perspectives = {}
+        for player in players:
+
+            row = {}
+
+            for i in range(len(player.cards)):
+                card = player.cards[i]
+
+                row[f'rank{i + 1}'] = player.cards[i].rank
+                row[f'suit{i + 1}'] = player.cards[i].suit
+            
+            for i in range(len(shared_cards)):
+
+                card = shared_cards[i]
+
+                row[f'rank{i + len(players) + 1}'] = card.rank
+                row[f'suit{i + len(players) + 1}'] = card.suit
+            
+            row['class'] = max(player.poker_hand.classifications).classification
+            if winner == player.number:
+                row['win'] = 1
+            else:
+                row['win'] = -1
+
+            perspectives[player.number] = row
+        
+        for perspective in perspectives:
+            games = games.append(perspectives[perspective], ignore_index = True)
+        
+        # print(perspectives)
+        # player1 = players[1]
+
+        # row['class'] = classification
+        # row['win'] =
+    print(games)
+    games.to_csv('games.csv')
+
 def main():
-    game = PokerGame(NumberOfPlayers=2)
-    game.play()
+    games = 100
+    createDataset(games)
 
 if __name__ == "__main__":
     main()
