@@ -1,4 +1,5 @@
 import numpy as np
+import operator
 
 class PokerGame:
 
@@ -15,8 +16,6 @@ class PokerGame:
         self.deck.shuffle_deck()
 
         print("START")
-        # self.display_players()
-
         # initial draw
         for player in self.players:
             player.add_cards(self.deck.draw_card(numberOfDraws=2))
@@ -25,117 +24,42 @@ class PokerGame:
         self.display_players()
 
         # flop draw
-        # print("flop")
-        self.shared_cards = self.deck.draw_card(numberOfDraws=3)
+        self.draw_cards(3)
         # self.display_table()
 
         # turn draw
-        # print("turn")
-        self.shared_cards = np.append(self.shared_cards, self.deck.draw_card())
+        self.draw_cards(1)
         # self.display_table()
 
         # river draw
-        # print("river")
-        self.shared_cards = np.append(self.shared_cards, self.deck.draw_card())
+        self.draw_cards(1)
+
         self.display_table()
-    
-    # TODO: write functionality to calculate and assign possible poker hands to winner, then classify each poker hand
-    # and determine the winner basec on the player's strongest possible poker hand.
+
+        # self.display_players()
+
+        winner, classification = self.determine_winner()
+        print(f"#{winner.number} won with {classification}")
+
     def determine_winner(self):
-        pass
-    
-    def display_players(self):
+
+        classifications = {}
+        classification_type = None
+        winner = None
+
         for player in self.players:
-            player.display()
-    
-    def display_table(self):
-        print("Table:")
-        for card in self.shared_cards:
-            card.display()
+            players_hand = player.get_poker_hand()
+            hand_classifications = players_hand.get_classifications()
+            print(f"CLASSIFICATIONS FOR PLAYER {player.number}")
+            for c in hand_classifications:
+                c.display()
+            hand_classification = max(hand_classifications)
 
-class Player:
-    
-    def __init__(self, number):
-        self.cards = np.array([])
-        self.number = number
-        # NOTE: poker_hands will hold all possible PokerHands available to the player object
-        # self.poker_hands = np.array([])
-    
-    def add_cards(self, cards):
-        self.cards = np.append(self.cards, cards)
-    
-    def display(self):
-        print(f"Player {self.number}")
-        for card in self.cards:
-            card.display()
-    
-    # Write functionality that given 7 cards (2 unique player cards and 5 shared table cards)
-    # Determine every combination of cards in sets of 5 (order does not matter)
-    def determine_hands(self, cards):
-        pass
-
-class PokerHand:
-
-    def __init__(self, cards = None):
-        self.cards = cards
-        self.classifications = self.classify()
-    
-    def get_cards(self):
-        return self.cards
-    
-    def display(self):
-        for card in self.cards:
-            card.display()
+            classifications[player] = hand_classification
         
-    def classify(self):
+        winner = max(classifications.items(), key=operator.itemgetter(1))[0]
+        classification_type = classifications[winner].get_classification()
 
-        classifications = set()
-        flush = True
-        straight = True
-        ranks = {}
-
-        sorted_cards = np.sort(self.cards)
-
-        previous_card = None
-        high_ace = False
-
-        for card in sorted_cards:
-
-            rank = card.get_rank()
-            suit = card.get_suit()
-
-            if rank not in ranks:
-                ranks[rank] = 1
-            else:
-                ranks[rank] += 1
-            
-            if previous_card is None:
-                previous_card = card
-
-            else:
-                if rank is 1 and high_ace:
-                    rank = 14
-
-                previous_rank = previous_card.get_rank()
-                previous_suit = previous_card.get_suit()
-
-                if previous_suit is not suit:
-                    flush = False
-                
-                
-                if previous_rank is not rank - 1:
-                    straight = False
-                
-                # Handling high ace cases
-                if previous_rank is 1 and not straight:
-                    sorted_cards = np.delete(sorted_cards, 0)
-                    sorted_cards = np.append(sorted_cards, previous_card)
-                    high_ace = True
-                    straight = True
-
-        high_card = max(ranks, key = ranks.get)
-
-        # Card Classifications
         # 0: Nothing in hand; not a recognized poker hand 
         # 1: One pair; one pair of equal ranks within five cards
         # 2: Two pairs; two pairs of equal ranks within five cards
@@ -146,52 +70,216 @@ class PokerHand:
         # 7: Four of a kind; four equal ranks within five cards
         # 8: Straight flush; straight + flush
         # 9: Royal flush; {Ace, King, Queen, Jack, Ten} + flush
+
+        poker_hands = ["Highest card", "One pair", "Two pair", "Three of a kind", "Straight", "Flush", "Full house", "Four of a kind", "Straight flush", "Royal flush"]
+        classification = poker_hands[classification_type]
+        return winner, classification
+    
+    def display_players(self):
+        for player in self.players:
+            player.display()
+    
+    def display_table(self):
+        print("Table:")
+        for card in self.shared_cards:
+            card.display()
+    
+    def draw_cards(self, numberOfCards):
+
+        cards = self.deck.draw_card(numberOfCards)
+        self.shared_cards = np.append(self.shared_cards, cards)
+        
+        for player in self.players:
+            player.add_cards(cards)
+
+class Player:
+    
+    def __init__(self, number):
+        self.cards = np.array([])
+        self.number = number
+        self.poker_hand = None
+    
+    def add_cards(self, cards):
+        self.cards = np.append(self.cards, cards)
+        self.set_poker_hand(self.cards)
+    
+    def set_poker_hand(self, cards):
+        self.poker_hand = PokerHand(cards)
+    
+    def get_poker_hand(self):
+        return self.poker_hand
+
+    def display(self):
+        print(f"Player {self.number}")
+        self.poker_hand.display()
+
+class PokerHand:
+
+    def __init__(self, cards):
+        self.cards = cards
+        self.classifications = set()
+        self.classify()
+    
+    def get_classifications(self):
+        return self.classifications
+    
+    def get_cards(self):
+        return self.cards
+    
+    def display(self):
+        for card in self.cards:
+            card.display()
+
+    def classify(self):
+
+        sorted_cards = np.sort(self.cards, axis=None)
+
+        flush = False
+        straight = False
+
+        ranks = {}
+        suits = {}
+
+        straight_count = 1
+        straight_cards = np.array([])
+
+        ace_present = False
+
+        highest_rank = 0
+        high_card = None
+        
+        previous_card = None
+
+        for i in range(len(sorted_cards)):
+
+            card = sorted_cards[i]
+            rank = card.get_rank()
+            suit = card.get_suit()
+
+            if rank not in ranks:
+                ranks[rank] = np.array([card])
+            else:
+                ranks[rank] = np.append(ranks[rank], card)
+            
+            if suit not in suits:
+                suits[suit] = np.array([card])
+            else:
+                suits[suit] = np.append(suits[suit], card)
+            
+            if previous_card is None:
+                previous_card = card
+
+            else:
+                
+                if highest_rank < rank:
+                    highest_rank = rank
+                    high_card = card
+
+                previous_rank = previous_card.get_rank()
+                
+                # Accumulates points towards a straight classification
+                if previous_rank == rank - 1:
+                    straight_count += 1
+                # Resets points
+                else:
+                    straight_count = 1
+                
+                # Defines straight
+                if straight_count >= 5:
+                    straight = True
+                    straight_cards = np.arrays([sorted_cards[i-4], sorted_cards[i-3], sorted_cards[i-2], sorted_cards[i-1], sorted_cards[i]])
+
+                # Handles ace high straights
+                elif straight_count == 4 and rank == 13 and ace_present:
+                    straight = True
+                    straight_cards = np.arrays([sorted_cards[i-3], sorted_cards[i-2], sorted_cards[i-1], sorted_cards[i], sorted_cards[0]])
+
         if straight:
-                classification = CardsClassification(4, high_card)
-                classifications.add(classification)
+            self.assign_classification(handClassification=4, cards=straight_cards)
 
-        if flush:
-            classification = CardsClassification(5, high_card)
-            classifications.add(classification)
+        # Assigns junk card classification
+        if ace_present:
+            high_card = sorted_cards[0]
+        self.assign_classification(handClassification=0, cards=high_card)
 
-        if straight and flush:
-            classification = CardsClassification(8, high_card)
-            classifications.add(classification)
+        # Checking for float classification
+        for suit, cards in suits.items():
+            if len(cards) == 5:
+                flush = True
 
-        if straight and flush and high_card is 1:
-            classification = CardsClassification(9)
+            if flush:
+                self.assign_classification(handClassification=5, cards=cards)
 
-        for rank, appearances in ranks.items():
-            # Check for full house
-            if 1 or 3 in classifications:
-                if appearances is 2 or 3:
-                    classification = CardsClassification(6)
-                    classifications.add(classification)
+                # Checking for special straight classifications (straight flush, royal flush)
+                if straight:
+                    if cards == straight_cards:
+                        self.assign_classification(handClassification=8, cards=cards)
 
+                        if cards[-1].rank == 1:
+                            self.assign_classification(handClassification=9, cards=cards)
+        
+        # Checking for pair classifications (pair, two pair, 3oak, 4oak, full house)
+        pairs = np.array([])
+        for rank, cards in ranks.items():
+
+            appearances = len(cards)
+            # print(f"rank: {rank}, appearances: {appearances}, cards: {cards}")
             # Check Pair
-            if appearances is 2:
-                if 1 in classifications:
-                    classification = CardsClassification(2)
-                    classifications.add(classification)
-                classification = CardsClassification(1, rank)
-                classifications.add(classification)
+            if appearances == 2:
+
+                # Check for full house
+                if len(pairs) == 2:
+                    pairs = np.append(pairs, cards)
+                    self.assign_classification(handClassification=2, cards=pairs)
+                
+                if len(pairs) == 3:
+                    pairs = np.append(pairs, cards)
+                    self.assign_classification(handClassification=6, cards=pairs)
+
+                pairs = cards
+                self.assign_classification(handClassification=1, cards=cards)
 
             # Check 3 of a kind
-            if appearances is 3:
-                classification = CardsClassification(3, rank)
-                classifications.add(classification)
+            if appearances == 3:
+                # Check for full house
+                if len(pairs) == 2:
+                    pairs = np.append(pairs, cards)
+                    self.assign_classification(handClassification=6, cards=pairs)
+
+                pairs = cards
+                self.assign_classification(handClassification=3, cards=cards)
 
             # Checks 4 of a kind
-            if appearances is 4:
-                classification = CardsClassification(7, rank)
-                classifications.add(classification)
-
-        return classifications
+            if appearances == 4:
+                self.assign_classification(handClassification=7, cards=cards)
+    
+    def assign_classification(self, handClassification, cards):
+        classification = CardsClassification(handClassification)
+        classification.set_cards(cards)
+        self.classifications.add(classification)
 
 class CardsClassification:
-    def __init__(self, classification, rank = None):
+
+    cards = np.array([])
+
+    def __init__(self, classification):
         self.classification = classification
-        self.rank = rank
+    
+    def set_cards(self, cards):
+        self.cards = np.append(self.cards, cards)
+    
+    def get_classification(self):
+        return self.classification
+    
+    def display(self):
+        print()
+        print(f"classification: {self.classification}")
+        for card in self.cards:
+            card.display()
+        print()
+    
+    def __lt__(self, other):
+        return self.classification < other.classification
 
 class Deck:
 
@@ -241,6 +329,9 @@ class Card:
 
     def display(self):
         print(f"{self.name} of {self.suit}.")
+        
+    def __lt__(self, other):
+        return self.rank < other.rank
 
 def main():
     game = PokerGame(NumberOfPlayers=2)
