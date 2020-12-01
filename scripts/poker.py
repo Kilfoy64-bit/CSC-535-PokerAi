@@ -189,12 +189,12 @@ class PokerHand:
                 # Defines straight
                 if straight_count >= 5:
                     straight = True
-                    straight_cards = np.arrays([sorted_cards[i-4], sorted_cards[i-3], sorted_cards[i-2], sorted_cards[i-1], sorted_cards[i]])
+                    straight_cards = np.array([sorted_cards[i-4], sorted_cards[i-3], sorted_cards[i-2], sorted_cards[i-1], sorted_cards[i]])
 
                 # Handles ace high straights
                 elif straight_count == 4 and rank == 13 and ace_present:
                     straight = True
-                    straight_cards = np.arrays([sorted_cards[i-3], sorted_cards[i-2], sorted_cards[i-1], sorted_cards[i], sorted_cards[0]])
+                    straight_cards = np.array([sorted_cards[i-3], sorted_cards[i-2], sorted_cards[i-1], sorted_cards[i], sorted_cards[0]])
 
         if straight:
             self.assign_classification(handClassification=4, cards=straight_cards)
@@ -214,7 +214,9 @@ class PokerHand:
 
                 # Checking for special straight classifications (straight flush, royal flush)
                 if straight:
-                    if cards == straight_cards:
+                    comparison = cards == straight_cards 
+                    equal_cards = comparison.all() 
+                    if equal_cards:
                         self.assign_classification(handClassification=8, cards=cards)
 
                         if cards[-1].rank == 1:
@@ -344,8 +346,7 @@ def createDataset(numberOfRuns):
     games = pd.DataFrame(columns=columns)
 
     for i in range(numberOfRuns):
-
-
+        print(f'game: {i}')
         game = PokerGame(NumberOfPlayers=2)
         winner, players, shared_cards = game.play()
 
@@ -377,17 +378,12 @@ def createDataset(numberOfRuns):
         
         for perspective in perspectives:
             games = games.append(perspectives[perspective], ignore_index = True)
-        
-        # print(perspectives)
-        # player1 = players[1]
 
-        # row['class'] = classification
-        # row['win'] =
     print(games)
-    games.to_csv('games.csv')
+    # games.to_csv('games.csv')
 
 def main():
-    games = 100
+    games = 10000
     createDataset(games)
 
 if __name__ == "__main__":
