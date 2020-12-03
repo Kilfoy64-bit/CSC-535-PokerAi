@@ -29,7 +29,7 @@ class PokerGame:
         
         self.shared_cards = np.array([])
         # self.deck.display_deck()
-        # self.deck.shuffle_deck()
+        self.deck.shuffle_deck()
 
         print("START")
         self.progress_stage(stageName='Draw', drawCards=2)
@@ -586,7 +586,7 @@ def playGames(numberOfRuns=1, save=False):
         games.to_csv('games.csv')
 
 def main():
-    playGames(numberOfRuns=10000,save=True)
+    playGames(numberOfRuns=1,save=False)
 
 if __name__ == "__main__":
     main()
