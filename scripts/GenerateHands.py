@@ -1,4 +1,6 @@
 import csv
+import os
+import sys
 from random import randint
 
 
@@ -52,7 +54,7 @@ r* -> River
 12 - K
 13 - A
 '''
-csvfile = open('hands.csv', 'w', newline='')
+csvfile = open('./datasets/hands.csv', 'w', newline='')
 columns = ['d1', 'd1s', 'd2', 'd2s', 'f1', 'f1s',
            'f2', 'f2s', 'f3', 'f3s', 't1', 't1s', 'r1', 'r1s']
 writer = csv.DictWriter(csvfile, fieldnames=columns)
